@@ -12,7 +12,8 @@ let searchToken = 0;
 
 locationButton.addEventListener('click', () => {
   if (!navigator.geolocation) {
-    locationStatus.textContent = 'Location unavailable — add city or ZIP code instead.';
+    locationStatus.textContent =
+      'Location unavailable — add city or ZIP code instead.';
     return;
   }
 
@@ -53,7 +54,7 @@ form.addEventListener('submit', async event => {
 
   const token = ++searchToken;
 
-  setStatus('Checking current ownership and sources…');
+  setStatus('Researching ownership, investors and related companies…');
 
   resultBox.classList.add('hidden');
   resultBox.innerHTML = '';
@@ -130,18 +131,18 @@ function renderResult(result, location) {
     `)
     .join('');
 
-  const chain = (result.ownerChain || [])
-    .map((owner, index, arr) => `
-      <div class="chain-item">
-        <span class="owner">${escapeHtml(owner)}</span>
-        ${
-          index < arr.length - 1
-            ? '<span class="arrow">→</span>'
-            : ''
-        }
-      </div>
-    `)
-    .join('');
+  const chain = Array.isArray(result.ownerChain)
+    ? result.ownerChain.filter(Boolean)
+    : [];
+
+  const investors = Array.isArray(result.keyInvestors)
+    ? result.keyInvestors.filter(Boolean)
+    : [];
+
+  const relatedBusinesses =
+    Array.isArray(result.relatedBusinesses)
+      ? result.relatedBusinesses.filter(Boolean)
+      : [];
 
   const hasLocation =
     Boolean(location.city) ||
@@ -150,6 +151,53 @@ function renderResult(result, location) {
   const locationContext = location.city
     ? `Near ${escapeHtml(location.city)}`
     : 'Using your location';
+
+  const factSections = [];
+
+  if (chain.length) {
+    factSections.push(
+      makeFact(
+        ownershipLabel(result.classification),
+        chain.join(' → ')
+      )
+    );
+  }
+
+  if (result.moneyRaised) {
+    factSections.push(
+      makeFact(
+        moneyLabel(result.classification),
+        result.moneyRaised
+      )
+    );
+  }
+
+  if (investors.length) {
+    factSections.push(
+      makeFact(
+        'KEY INVESTORS',
+        formatList(investors)
+      )
+    );
+  }
+
+  if (relatedBusinesses.length) {
+    factSections.push(
+      makeFact(
+        relatedLabel(result.classification),
+        formatList(relatedBusinesses)
+      )
+    );
+  }
+
+  if (result.founderOperator) {
+    factSections.push(
+      makeFact(
+        founderLabel(result.classification),
+        result.founderOperator
+      )
+    );
+  }
 
   resultBox.innerHTML = `
     <div class="result-header">
@@ -172,7 +220,7 @@ function renderResult(result, location) {
     </div>
 
     <div class="primary-answer">
-      <div class="label">WHAT IT IS</div>
+      <div class="label">WHAT IT MEANS</div>
 
       <p>
         ${escapeHtml(
@@ -181,13 +229,15 @@ function renderResult(result, location) {
       </p>
     </div>
 
-    <div class="ownership-block">
-      <div class="label">OWNERSHIP</div>
-
-      <div class="chain">
-        ${chain}
-      </div>
-    </div>
+    ${
+      factSections.length
+        ? `
+          <div class="ownership-facts">
+            ${factSections.join('')}
+          </div>
+        `
+        : ''
+    }
 
     <section class="alternatives-section">
       <h3>
@@ -246,6 +296,97 @@ function renderResult(result, location) {
   `;
 
   resultBox.classList.remove('hidden');
+}
+
+function makeFact(label, value) {
+  if (!value) return '';
+
+  return `
+    <div class="ownership-block fact-block">
+      <div class="label">
+        ${escapeHtml(label)}
+      </div>
+
+      <div class="fact-value">
+        ${escapeHtml(value)}
+      </div>
+    </div>
+  `;
+}
+
+function ownershipLabel(classification) {
+  switch (classification) {
+    case 'PUBLIC COMPANY':
+      return 'OWNERSHIP';
+
+    case 'CORPORATE OWNED':
+      return 'OWNED BY';
+
+    case 'PRIVATE EQUITY':
+      return 'OWNED / BACKED BY';
+
+    case 'VENTURE BACKED':
+      return 'WHO OWNS IT';
+
+    case 'RESTAURANT / HOSPITALITY GROUP':
+      return 'OWNERSHIP / GROUP';
+
+    case 'FRANCHISE':
+      return 'FRANCHISE / OWNERSHIP';
+
+    default:
+      return 'OWNERSHIP';
+  }
+}
+
+function moneyLabel(classification) {
+  if (classification === 'VENTURE BACKED') {
+    return 'MONEY RAISED';
+  }
+
+  if (classification === 'PRIVATE EQUITY') {
+    return 'INVESTMENT';
+  }
+
+  return 'DEAL / FUNDING';
+}
+
+function relatedLabel(classification) {
+  if (
+    classification ===
+    'RESTAURANT / HOSPITALITY GROUP'
+  ) {
+    return 'RELATED RESTAURANTS';
+  }
+
+  return 'RELATED BUSINESSES';
+}
+
+function founderLabel(classification) {
+  if (
+    classification ===
+    'RESTAURANT / HOSPITALITY GROUP'
+  ) {
+    return 'KEY PEOPLE';
+  }
+
+  return 'FOUNDED / OPERATED BY';
+}
+
+function formatList(items) {
+  if (!items.length) return '';
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} + ${items[1]}`;
+  }
+
+  return `${items
+    .slice(0, -1)
+    .join(', ')} + ${items[items.length - 1]}`;
 }
 
 async function loadAlternatives(
