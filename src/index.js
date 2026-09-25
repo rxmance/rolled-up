@@ -398,18 +398,10 @@ async function getOpenAIKey(env) {
     return "";
   }
 
-  /*
-   * Supports a normal Cloudflare Worker secret:
-   * env.OPENAI_API_KEY === "sk-..."
-   */
   if (typeof binding === "string") {
     return binding;
   }
 
-  /*
-   * Supports a Cloudflare Secrets Store binding:
-   * await env.OPENAI_API_KEY.get()
-   */
   if (
     binding &&
     typeof binding.get === "function"
@@ -675,3 +667,4 @@ function safeError(error) {
   return error instanceof Error
     ? error.message
     : String(error);
+}
