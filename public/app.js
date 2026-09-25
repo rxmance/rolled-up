@@ -54,7 +54,9 @@ form.addEventListener('submit', async event => {
 
   const token = ++searchToken;
 
-  setStatus('Researching ownership, investors and related companies…');
+  setStatus(
+    'Researching ownership, investors and related companies…'
+  );
 
   resultBox.classList.add('hidden');
   resultBox.innerHTML = '';
@@ -79,7 +81,9 @@ form.addEventListener('submit', async event => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Search failed');
+      throw new Error(
+        data.error || 'Search failed'
+      );
     }
 
     if (token !== searchToken) return;
@@ -125,19 +129,23 @@ function renderResult(result, location) {
         target="_blank"
         rel="noreferrer"
       >
-        ${escapeHtml(source.publisher || source.title)}
+        ${escapeHtml(
+          source.publisher || source.title
+        )}
         <span class="ext">↗</span>
       </a>
     `)
     .join('');
 
-  const chain = Array.isArray(result.ownerChain)
-    ? result.ownerChain.filter(Boolean)
-    : [];
+  const chain =
+    Array.isArray(result.ownerChain)
+      ? result.ownerChain.filter(Boolean)
+      : [];
 
-  const investors = Array.isArray(result.keyInvestors)
-    ? result.keyInvestors.filter(Boolean)
-    : [];
+  const investors =
+    Array.isArray(result.keyInvestors)
+      ? result.keyInvestors.filter(Boolean)
+      : [];
 
   const relatedBusinesses =
     Array.isArray(result.relatedBusinesses)
@@ -154,11 +162,20 @@ function renderResult(result, location) {
 
   const factSections = [];
 
-  if (chain.length) {
+  const ownershipText =
+    buildOwnershipText(
+      result,
+      chain,
+      investors
+    );
+
+  if (ownershipText) {
     factSections.push(
       makeFact(
-        ownershipLabel(result.classification),
-        chain.join(' → ')
+        ownershipLabel(
+          result.classification
+        ),
+        ownershipText
       )
     );
   }
@@ -166,7 +183,9 @@ function renderResult(result, location) {
   if (result.moneyRaised) {
     factSections.push(
       makeFact(
-        moneyLabel(result.classification),
+        moneyLabel(
+          result.classification
+        ),
         result.moneyRaised
       )
     );
@@ -184,8 +203,12 @@ function renderResult(result, location) {
   if (relatedBusinesses.length) {
     factSections.push(
       makeFact(
-        relatedLabel(result.classification),
-        formatList(relatedBusinesses)
+        relatedLabel(
+          result.classification
+        ),
+        formatList(
+          relatedBusinesses
+        )
       )
     );
   }
@@ -193,7 +216,9 @@ function renderResult(result, location) {
   if (result.founderOperator) {
     factSections.push(
       makeFact(
-        founderLabel(result.classification),
+        founderLabel(
+          result.classification
+        ),
         result.founderOperator
       )
     );
@@ -210,17 +235,23 @@ function renderResult(result, location) {
         </div>
 
         <h2>
-          ${escapeHtml(result.businessName)}
+          ${escapeHtml(
+            result.businessName
+          )}
         </h2>
       </div>
 
       <div class="type-badge">
-        ${escapeHtml(result.classification)}
+        ${escapeHtml(
+          result.classification
+        )}
       </div>
     </div>
 
     <div class="primary-answer">
-      <div class="label">WHAT IT MEANS</div>
+      <div class="label">
+        WHAT IT MEANS
+      </div>
 
       <p>
         ${escapeHtml(
@@ -281,7 +312,8 @@ function renderResult(result, location) {
         <span class="confidence">
           Confidence:
           ${escapeHtml(
-            result.confidence || 'Low'
+            result.confidence ||
+            'Low'
           )}
         </span>
       </div>
@@ -295,7 +327,57 @@ function renderResult(result, location) {
     </div>
   `;
 
-  resultBox.classList.remove('hidden');
+  resultBox.classList.remove(
+    'hidden'
+  );
+}
+
+function buildOwnershipText(
+  result,
+  chain,
+  investors
+) {
+  const classification =
+    result.classification;
+
+  if (
+    classification ===
+    'VENTURE BACKED'
+  ) {
+    const founder =
+      cleanDisplayName(
+        result.founderOperator
+      );
+
+    if (
+      founder &&
+      investors.length
+    ) {
+      return `Privately held by ${founder} and outside investors. Exact ownership stakes are not publicly disclosed.`;
+    }
+
+    if (investors.length) {
+      return 'Privately held with outside institutional investors. Exact ownership stakes are not publicly disclosed.';
+    }
+
+    if (founder) {
+      return `Privately held. ${founder} is the identified founder/operator; exact ownership stakes are not publicly disclosed.`;
+    }
+
+    return 'Privately held. Exact ownership stakes are not publicly disclosed.';
+  }
+
+  if (!chain.length) {
+    return '';
+  }
+
+  return chain.join(' → ');
+}
+
+function cleanDisplayName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 function makeFact(label, value) {
@@ -314,7 +396,9 @@ function makeFact(label, value) {
   `;
 }
 
-function ownershipLabel(classification) {
+function ownershipLabel(
+  classification
+) {
   switch (classification) {
     case 'PUBLIC COMPANY':
       return 'OWNERSHIP';
@@ -339,19 +423,29 @@ function ownershipLabel(classification) {
   }
 }
 
-function moneyLabel(classification) {
-  if (classification === 'VENTURE BACKED') {
+function moneyLabel(
+  classification
+) {
+  if (
+    classification ===
+    'VENTURE BACKED'
+  ) {
     return 'MONEY RAISED';
   }
 
-  if (classification === 'PRIVATE EQUITY') {
+  if (
+    classification ===
+    'PRIVATE EQUITY'
+  ) {
     return 'INVESTMENT';
   }
 
   return 'DEAL / FUNDING';
 }
 
-function relatedLabel(classification) {
+function relatedLabel(
+  classification
+) {
   if (
     classification ===
     'RESTAURANT / HOSPITALITY GROUP'
@@ -362,7 +456,9 @@ function relatedLabel(classification) {
   return 'RELATED BUSINESSES';
 }
 
-function founderLabel(classification) {
+function founderLabel(
+  classification
+) {
   if (
     classification ===
     'RESTAURANT / HOSPITALITY GROUP'
@@ -386,7 +482,9 @@ function formatList(items) {
 
   return `${items
     .slice(0, -1)
-    .join(', ')} + ${items[items.length - 1]}`;
+    .join(', ')} + ${
+      items[items.length - 1]
+    }`;
 }
 
 async function loadAlternatives(
@@ -398,32 +496,47 @@ async function loadAlternatives(
   }
 ) {
   const list =
-    document.querySelector('#alt-list');
+    document.querySelector(
+      '#alt-list'
+    );
 
   if (!list) return;
 
   try {
     const response =
-      await fetch('/api/alternatives', {
-        method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
-        body: JSON.stringify({
-          businessName,
-          city: city || undefined,
-          latitude: coords?.latitude,
-          longitude: coords?.longitude
-        })
-      });
+      await fetch(
+        '/api/alternatives',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+          body: JSON.stringify({
+            businessName,
+            city:
+              city || undefined,
+            latitude:
+              coords?.latitude,
+            longitude:
+              coords?.longitude
+          })
+        }
+      );
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
-    if (token !== searchToken) return;
+    if (
+      token !== searchToken
+    ) {
+      return;
+    }
 
     const alternatives =
-      Array.isArray(data.alternatives)
+      Array.isArray(
+        data.alternatives
+      )
         ? data.alternatives
         : [];
 
@@ -438,47 +551,52 @@ async function loadAlternatives(
       return;
     }
 
-    list.innerHTML = alternatives
-      .map(alt => `
-        <a
-          class="alt-item"
-          href="${escapeAttr(
-            alt.url || '#'
-          )}"
-          ${
-            alt.url
-              ? 'target="_blank" rel="noreferrer"'
-              : ''
-          }
-        >
-          <div>
-            <div class="alt-name">
-              ${escapeHtml(alt.name)}
+    list.innerHTML =
+      alternatives
+        .map(alt => `
+          <a
+            class="alt-item"
+            href="${escapeAttr(
+              alt.url || '#'
+            )}"
+            ${
+              alt.url
+                ? 'target="_blank" rel="noreferrer"'
+                : ''
+            }
+          >
+            <div>
+              <div class="alt-name">
+                ${escapeHtml(
+                  alt.name
+                )}
+              </div>
+
+              <span class="alt-location">
+                ${escapeHtml(
+                  alt.location || ''
+                )}
+              </span>
+
+              <p class="alt-reason">
+                ${escapeHtml(
+                  alt.reason || ''
+                )}
+              </p>
             </div>
 
-            <span class="alt-location">
-              ${escapeHtml(
-                alt.location || ''
-              )}
-            </span>
-
-            <p class="alt-reason">
-              ${escapeHtml(
-                alt.reason || ''
-              )}
-            </p>
-          </div>
-
-          ${
-            alt.url
-              ? '<span class="ext">↗</span>'
-              : ''
-          }
-        </a>
-      `)
-      .join('');
+            ${
+              alt.url
+                ? '<span class="ext">↗</span>'
+                : ''
+            }
+          </a>
+        `)
+        .join('');
   } catch {
-    if (token === searchToken) {
+    if (
+      token === searchToken
+    ) {
       list.innerHTML = `
         <div class="no-alt">
           No confidently independent
@@ -493,10 +611,13 @@ function setStatus(
   message,
   isError = false
 ) {
-  statusBox.textContent = message;
+  statusBox.textContent =
+    message;
 
   statusBox.className =
-    `status${isError ? ' error' : ''}`;
+    `status${
+      isError ? ' error' : ''
+    }`;
 }
 
 function hideStatus() {
